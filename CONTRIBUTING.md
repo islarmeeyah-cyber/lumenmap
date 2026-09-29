@@ -10,6 +10,7 @@ Thank you for your interest in contributing. This guide covers everything you ne
 - [Prerequisites](#prerequisites)
 - [Getting started](#getting-started)
 - [Fixture mode vs live mode](#fixture-mode-vs-live-mode)
+- [Onboarding when live data fails](#onboarding-when-live-data-fails)
 - [Project structure](#project-structure)
 - [Available commands](#available-commands)
 - [Making changes](#making-changes)
@@ -101,6 +102,18 @@ Hubble setup guide: [Connecting to BigQuery](https://developers.stellar.org/docs
 
 > **Do not commit `gcp-sa.json` or `.env.local`.** Both are in `.gitignore`. Each contributor uses their own credentials.
 
+### Onboarding when live data fails
+
+If you have configured GCP credentials but the live Hubble query fails (expired key, missing BigQuery permissions, network issues), the dashboard shows an error state. In local development this error state includes an onboarding panel that explains how to fall back to fixture mode so you can keep working on the UI.
+
+To enable fixture mode after a live failure:
+
+1. Comment out or remove `GOOGLE_APPLICATION_CREDENTIALS` and `GCP_SERVICE_ACCOUNT_KEY` in `.env.local`.
+2. Restart the dev server (`npm run dev`).
+3. Reload the dashboard — the API will return fixture data with `"fixture": true`.
+
+The onboarding panel links back to this section. It is only rendered when `NODE_ENV` is not `production`, so production deployments never surface fixture instructions to end users.
+
 ---
 
 ## Project structure
@@ -190,6 +203,8 @@ npm run lint       # check before committing
 
 3. If you change the shape of the response, update `lib/hubble/fixture.ts` to match so fixture mode stays representative.
 
+4. If a live query fails during development, follow [Onboarding when live data fails](#onboarding-when-live-data-fails) to switch back to fixture mode.
+
 4. Bump the cache key prefix in `lib/hubble/activity.ts` (e.g. `activity:v10:` → `activity:v11:`) to avoid serving stale cached responses to existing instances.
 
 ### Updating entity labels
@@ -267,6 +282,7 @@ Valid categories: `defi`, `exchange`, `wallet`, `anchor`, `issuer`, `other`.
 - **Lint:** `npm run lint` must pass with no errors.
 - **Query changes:** Run `npm run test:hubble` and include the output in the PR description. If you do not have GCP access, note that clearly and ask a maintainer to verify.
 - **Fixture data:** If you add or rename response fields, update `lib/hubble/fixture.ts` to reflect the new shape.
+- **Fixture onboarding:** The dev-only onboarding panel must never render in production builds. Verify with a component test that toggles `NODE_ENV` between `development` and `production`.
 - **Entity additions:** Small additions to `data/entities.json` can be bundled into a single PR. Large batch updates should be their own PR.
 - **No credentials in commits:** Double-check that `gcp-sa.json` and `.env.local` are not staged.
 
